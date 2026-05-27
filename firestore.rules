@@ -1,0 +1,128 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      // Bootstrapped Admin using user's runtime email address with verification
+      return isSignedIn() && (
+        (request.auth.token.email == "kataray3@gmail.com" && request.auth.token.email_verified == true) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Entity validations
+    function isValidUserProfile(data) {
+      return data.userId is string 
+        && data.userId.size() <= 128
+        && data.name is string && data.name.size() <= 100
+        && data.email is string && data.email.size() <= 100
+        && (data.phone == null || (data.phone is string && data.phone.size() <= 20))
+        && (data.city == null || (data.city is string && data.city.size() <= 100))
+        && (data.profession == null || (data.profession is string && data.profession.size() <= 100))
+        && (data.experienceLevel == null || (data.experienceLevel is string && data.experienceLevel.size() <= 50))
+        && (data.interestCategory == null || (data.interestCategory is string && data.interestCategory.size() <= 100))
+        && (data.leadScore == null || data.leadScore is number)
+        && (data.enrolledCourses == null || (data.enrolledCourses is list && data.enrolledCourses.size() <= 100));
+    }
+
+    function isValidLead(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() <= 100
+        && data.email is string && data.email.size() <= 100
+        && (data.phone == null || (data.phone is string && data.phone.size() <= 20))
+        && (data.city == null || (data.city is string && data.city.size() <= 100))
+        && (data.profession == null || (data.profession is string && data.profession.size() <= 100))
+        && (data.experienceLevel == null || (data.experienceLevel is string && data.experienceLevel.size() <= 50))
+        && (data.interestCategory == null || (data.interestCategory is string && data.interestCategory.size() <= 100))
+        && (data.leadScore == null || data.leadScore is number)
+        && (data.status is string && (data.status == "new" || data.status == "contacted" || data.status == "enrolled" || data.status == "lost"))
+        && (data.createdAt is string || data.createdAt is timestamp);
+    }
+
+    function isValidPost(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.author is string && data.author.size() <= 100
+        && data.avatar is string && data.avatar.size() <= 300
+        && data.authorTitle is string && data.authorTitle.size() <= 150
+        && data.content is string && data.content.size() <= 5000
+        && data.likes is number
+        && data.comments is number
+        && data.tags is list && data.tags.size() <= 10
+        && data.userId is string && data.userId == request.auth.uid
+        && (data.likedBy == null || (data.likedBy is list && data.likedBy.size() <= 1000));
+    }
+
+    // 1. Global Safety Net: Default Deny Catch-All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Test connection document
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // 3. User Profiles Collection
+    match /userProfiles/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId) && isValidUserProfile(incoming());
+      allow update: if isOwner(userId) && isValidUserProfile(incoming()) && (
+        // Ensure userId and email cannot be changed (Immutability Rule)
+        incoming().userId == existing().userId &&
+        incoming().email == existing().email
+      ) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // 4. Leads Collection
+    match /leads/{leadId} {
+      // Allows prospective anonymous visitors to submit their registrations
+      allow get: if isAdmin() || (isSignedIn() && existing().email == request.auth.token.email);
+      allow list: if isAdmin();
+      allow create: if isValidId(leadId) && isValidLead(incoming());
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // 5. Posts (Community) Collection
+    match /posts/{postId} {
+      allow get, list: if true;
+      allow create: if isValidId(postId) && isValidPost(incoming());
+      allow update: if isValidId(postId) && (
+        // Post owners can update content/tags
+        (isOwner(existing().userId) && isValidPost(incoming()) && incoming().userId == existing().userId) ||
+        // Other signed-in users can update likes count and append themselves to likedBy
+        (isSignedIn() && incoming().diff(existing()).affectedKeys().hasOnly(['likes', 'likedBy']))
+      ) || isAdmin();
+      allow delete: if isSignedIn() && (isOwner(existing().userId) || isAdmin());
+    }
+
+    // 6. Bootstrap Admins collection
+    match /admins/{userId} {
+      allow read: if isSignedIn();
+      allow write: if false; // System only
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Digital Yamini",
+  "description": "AI-Powered Digital Marketing & Generative AI Learning Ecosystem founded by Yamini Katara. Learn, implement, and grow.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

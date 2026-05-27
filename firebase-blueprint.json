@@ -1,0 +1,145 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Dynamic workspace profile of an authenticated student, with course completion states.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The Firebase Authentication UID."
+        },
+        "name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "profession": {
+          "type": "string"
+        },
+        "experienceLevel": {
+          "type": "string"
+        },
+        "interestCategory": {
+          "type": "string"
+        },
+        "leadScore": {
+          "type": "number"
+        },
+        "enrolledCourses": {
+          "type": "array"
+        },
+        "completedLessons": {
+          "type": "object"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "required": ["userId", "email"]
+    },
+    "Lead": {
+      "title": "Lead",
+      "description": "Potential student registration submitted via forms.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "profession": {
+          "type": "string"
+        },
+        "experienceLevel": {
+          "type": "string"
+        },
+        "interestCategory": {
+          "type": "string"
+        },
+        "leadScore": {
+          "type": "number"
+        },
+        "status": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "name", "email"]
+    },
+    "Post": {
+      "title": "Post",
+      "description": "A student community discussion post.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "author": {
+          "type": "string"
+        },
+        "avatar": {
+          "type": "string"
+        },
+        "authorTitle": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "likes": {
+          "type": "number"
+        },
+        "comments": {
+          "type": "number"
+        },
+        "tags": {
+          "type": "array"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "likedBy": {
+          "type": "array"
+        }
+      },
+      "required": ["id", "content", "userId"]
+    }
+  },
+  "firestore": {
+    "userProfiles/{userId}": {
+      "schema": "UserProfile",
+      "description": "Student workspace profiles keyed by UID."
+    },
+    "leads/{leadId}": {
+      "schema": "Lead",
+      "description": "Prospective lead collections."
+    },
+    "posts/{postId}": {
+      "schema": "Post",
+      "description": "LMS public community threads."
+    }
+  }
+}
